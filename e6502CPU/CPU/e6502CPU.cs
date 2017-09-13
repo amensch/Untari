@@ -41,8 +41,17 @@ namespace e6502CPU
         public bool ZF;    // zero flag (Z)
         public bool CF;    // carry flag (C)
 
-        // RAM - 16 bit address bus means 64KB of addressable memory
-        public byte[] memory;
+        // Flag for hardware interrupt (IRQ)
+        public bool IRQWaiting { get; set; }
+
+        // Flag for non maskable interrupt (NMI)
+        public bool NMIWaiting { get; set; }
+
+        // Ready flag present on 6507 editions
+        public bool RDY { get; set; }
+
+        // System bus
+        private ISystemBus _systemBus;
 
         // List of op codes and their attributes
         private OpCodeTable _opCodeTable;
@@ -53,21 +62,17 @@ namespace e6502CPU
         // Clock cycles to adjust due to page boundaries being crossed, branches taken, or NMOS/CMOS differences
         private int _extraCycles;
 
-        // Flag for hardware interrupt (IRQ)
-        public bool IRQWaiting { get; set; }
+        // Clock cycles remaining for the current instruction
+        private int _cyclesRemaining;
 
-        // Flag for non maskable interrupt (NMI)
-        public bool NMIWaiting { get; set; }
+        private e6502Type _cpuType { get; set; }
 
-        public e6502Type _cpuType { get; set; }
+        public e6502() : this( e6502Type.NMOS ) { }
 
         public e6502(e6502Type type)
         {
-            memory = new byte[0x10000];
             _opCodeTable = new OpCodeTable();
 
-            // Set these on instantiation so they are known values when using this object in testing.
-            // Real programs should explicitly load these values before using them.
             A = 0;
             X = 0;
             Y = 0;
@@ -79,68 +84,186 @@ namespace e6502CPU
             IF = true;
             ZF = false;
             CF = false;
+            RDY = false;
+
             NMIWaiting = false;
             IRQWaiting = false;
+
             _cpuType = type;
         }
 
-        public void Boot()
+        public void Boot(ISystemBus bus)
         {
+            this.Boot( bus, 0x0000 );
+
             // On reset the addresses 0xfffc and 0xfffd are read and PC is loaded with this value.
             // It is expected that the initial program loaded will have these values set to something.
             // Most 6502 systems contain ROM in the upper region (around 0xe000-0xffff)
             PC = GetWordFromMemory(0xfffc);
+        }
+
+        public void Boot(ISystemBus bus, ushort initProgramCounter)
+        {
+            _systemBus = bus;
+
+            PC = initProgramCounter;
+
+            _cyclesRemaining = 0;
 
             // interrupt disabled is set on powerup
             IF = true;
 
             NMIWaiting = false;
             IRQWaiting = false;
+
+            RDY = true;
         }
 
-        public void LoadProgram(ushort startingAddress, byte[] program)
+        public void Tick()
         {
-            program.CopyTo(memory, startingAddress);
-            PC = startingAddress;
+            if( RDY )
+            {
+                // start of instruction (prefetch)
+                if( _cyclesRemaining == 0 )
+                {
+                    _cyclesRemaining = PrefetchInstruction();
+                }
+
+                // last tick execute the instruction
+                if( _cyclesRemaining == 1 )
+                {
+                    ExecuteInstruction();
+                }
+
+                // decrement the cycles remaining
+                _cyclesRemaining--;
+            }
         }
 
-        public string DasmNextInstruction()
-        {
-            OpCodeRecord oprec = _opCodeTable.OpCodes[ memory[PC] ];
-            if (oprec.Bytes == 3)
-                return oprec.Dasm( GetImmWord() );
-            else
-                return oprec.Dasm( GetImmByte() );
-        }
-
-        // returns # of clock cycles needed to execute the instruction
+        // Executes the next instruction and returns the number of clock cycles taken.
+        // It is intended that the consumer of this class will run the CPU by either calling Tick() or ExecuteNext() 
+        // and not use them interchangably.
         public int ExecuteNext()
         {
             _extraCycles = 0;
 
             // Check for non maskable interrupt (has higher priority over IRQ)
-            if (NMIWaiting)
+            if( NMIWaiting )
             {
-                DoIRQ(0xfffa);
+                DoIRQ( 0xfffa );
                 NMIWaiting = false;
                 _extraCycles += 6;
             }
             // Check for hardware interrupt, if enabled
-            else if (!IF)
+            else if( !IF )
             {
-                if(IRQWaiting)
+                if( IRQWaiting )
                 {
-                    DoIRQ(0xfffe);
+                    DoIRQ( 0xfffe );
                     IRQWaiting = false;
                     _extraCycles += 6;
                 }
             }
 
-            _currentOP = _opCodeTable.OpCodes[memory[PC]];
+            _currentOP = _opCodeTable.OpCodes[_systemBus.Read(PC)];
 
             ExecuteInstruction();
 
             return _currentOP.Cycles + _extraCycles;
+        }
+
+        private int PrefetchInstruction()
+        {
+            int extraCycles = 0;
+
+            _currentOP = _opCodeTable.OpCodes[ _systemBus.Read( PC ) ];
+
+            // account for extra cycles for crossing a page boundary
+            switch( _currentOP.AddressMode )
+            {
+                case AddressModes.AbsoluteX:
+
+                    ushort imm = GetImmWord();
+                    ushort result = (ushort) (imm + X);
+
+                    if( _currentOP.CheckPageBoundary )
+                    {
+                        if( (imm & 0xff00) != (result & 0xff00) )
+                            extraCycles++;
+                    }
+                    break;
+                case AddressModes.AbsoluteY:
+                    imm = GetImmWord();
+                    result = (ushort) (imm + Y);
+
+                    if( _currentOP.CheckPageBoundary )
+                    {
+                        if( (imm & 0xff00) != (result & 0xff00) )
+                            extraCycles++;
+                    }
+                    break;
+                case AddressModes.IndirectY:
+                    ushort addr = GetWordFromMemory( GetImmByte() );
+                    byte oper = _systemBus.Read( (ushort) (addr + Y) );
+
+                    if( _currentOP.CheckPageBoundary )
+                    {
+                        if( (oper & 0xff00) != (addr & 0xff00) )
+                            extraCycles++;
+                    }
+                    break;
+            }
+
+            // Account for extra cycles if a branch is taken
+            switch( _currentOP.OpCode )
+            {
+                // BCC - branch on carry clear
+                case 0x90:
+                    extraCycles += PrefetchBranch( !CF );
+                    break;
+                // BCS - branch on carry set
+                case 0xb0:
+                    extraCycles += PrefetchBranch( CF );
+                    break;
+                // BEQ - branch on zero
+                case 0xf0:
+                    extraCycles += PrefetchBranch( ZF);
+                    break;
+                // BMI - branch on negative
+                case 0x30:
+                    extraCycles += PrefetchBranch( NF );
+                    break;
+
+                // BNE - branch on non zero
+                case 0xd0:
+                    extraCycles += PrefetchBranch( !ZF );
+                    break;
+
+                // BPL - branch on non negative
+                case 0x10:
+                    extraCycles += PrefetchBranch( !NF );
+                    break;
+
+                // BRA - unconditional branch to immediate address
+                // NOTE: In OpcodeList.txt the number of clock cycles is one less than the documentation.
+                // This is because CheckBranch() adds one when a branch is taken, which in this case is always.
+                case 0x80:
+                    extraCycles += PrefetchBranch( true );
+                    break;
+
+                // BVC - branch on overflow clear
+                case 0x50:
+                    extraCycles += PrefetchBranch( !VF );
+                    break;
+
+                // BVS - branch on overflow set
+                case 0x70:
+                    extraCycles += PrefetchBranch( VF );
+                    break;
+
+            }
+
+            return _currentOP.Cycles + extraCycles;
         }
 
         private void ExecuteInstruction()
@@ -262,7 +385,7 @@ namespace e6502CPU
                     }
 
                     // if the specified bit is 0 then branch
-                    byte offset = memory[PC + 2];
+                    byte offset = _systemBus.Read((ushort)(PC + 2));
                     PC += _currentOP.Bytes;
 
                     if ((oper & check_value) == 0x00)
@@ -292,7 +415,7 @@ namespace e6502CPU
                     }
 
                     // if the specified bit is 1 then branch
-                    offset = memory[PC + 2];
+                    offset = _systemBus.Read((ushort)(PC + 2));
                     PC += _currentOP.Bytes;
 
                     if ((oper & check_value) == check_value)
@@ -1091,7 +1214,7 @@ namespace e6502CPU
 
                 // Retrieves the byte at the specified memory location
                 case AddressModes.Absolute:             
-                    oper = memory[ GetImmWord() ];
+                    oper = _systemBus.Read( GetImmWord() );
                     break;
 
                 // Indexed absolute retrieves the byte at the specified memory location
@@ -1104,7 +1227,7 @@ namespace e6502CPU
                     {
                         if ((imm & 0xff00) != (result & 0xff00)) _extraCycles += 1;
                     }
-                    oper = memory[ result ];
+                    oper = _systemBus.Read( result );
                     break;
                 case AddressModes.AbsoluteY:
                     imm = GetImmWord();
@@ -1114,7 +1237,7 @@ namespace e6502CPU
                     {
                         if ((imm & 0xff00) != (result & 0xff00)) _extraCycles += 1;
                     }
-                    oper = memory[result]; break;
+                    oper = _systemBus.Read( result ); break;
 
                 // Immediate mode uses the next byte in the instruction directly.
                 case AddressModes.Immediate:
@@ -1145,7 +1268,7 @@ namespace e6502CPU
                      * 4) return the byte located at the address specified by the word
                      */
 
-                    oper = memory[GetWordFromMemory( (byte)(GetImmByte() + X))];
+                    oper = _systemBus.Read(GetWordFromMemory( (byte)(GetImmByte() + X)));
                     break;
 
                 // The Indirect Indexed works a bit differently than above.
@@ -1159,7 +1282,7 @@ namespace e6502CPU
                     */
 
                     ushort addr = GetWordFromMemory(GetImmByte());
-                    oper = memory[addr + Y];
+                    oper = _systemBus.Read((ushort)(addr + Y)) ;
 
                     if (_currentOP.CheckPageBoundary)
                     {
@@ -1178,24 +1301,24 @@ namespace e6502CPU
                 // Best programming practice is to place your variables in 0x00-0xff.
                 // Retrieve the byte at the indicated memory location.
                 case AddressModes.ZeroPage:
-                    oper = memory[GetImmByte()];
+                    oper = _systemBus.Read(GetImmByte());
                     break;
                 case AddressModes.ZeroPageX:
-                    oper = memory[(GetImmByte() + X) & 0xff];
+                    oper = _systemBus.Read((ushort)((GetImmByte() + X) & 0xff));
                     break;
                 case AddressModes.ZeroPageY:
-                    oper = memory[(GetImmByte() + Y) & 0xff];
+                    oper = _systemBus.Read((ushort)((GetImmByte() + Y) & 0xff));
                     break;
 
                 // this mode is from the 65C02 extended set
                 // works like ZeroPageY when Y=0
                 case AddressModes.ZeroPage0:
-                    oper = memory[GetWordFromMemory((GetImmByte()) & 0xff)];
+                    oper = _systemBus.Read(GetWordFromMemory((GetImmByte()) & 0xff));
                     break;
 
                 // for this mode do the same thing as ZeroPage
                 case AddressModes.BranchExt:
-                    oper = memory[GetImmByte()];
+                    oper = _systemBus.Read(GetImmByte());
                     break;
                 default:
                     break;
@@ -1214,13 +1337,13 @@ namespace e6502CPU
 
                 // Absolute mode retrieves the byte at the indicated memory location
                 case AddressModes.Absolute:
-                    memory[GetImmWord()] = (byte)data;
+                    _systemBus.Write( GetImmWord(), (byte) data );
                     break;
                 case AddressModes.AbsoluteX:
-                    memory[GetImmWord() + X] = (byte)data;
+                    _systemBus.Write( (ushort)(GetImmWord() + X), (byte) data );
                     break;
                 case AddressModes.AbsoluteY:
-                    memory[GetImmWord() + Y] = (byte)data;
+                    _systemBus.Write( (ushort) (GetImmWord() + Y), (byte) data );
                     break;
 
                 // Immediate mode uses the next byte in the instruction directly.
@@ -1242,13 +1365,13 @@ namespace e6502CPU
                 // immediate word to get the memory location from which to retrieve
                 // the 16 bit operand.  This is a combination of ZeroPage indexed and Indirect.
                 case AddressModes.XIndirect:
-                    memory[GetWordFromMemory((byte)(GetImmByte() + X))] = (byte)data;
+                    _systemBus.Write( GetWordFromMemory( (byte) (GetImmByte() + X) ), (byte) data );
                     break;
 
                 // The Indirect Indexed works a bit differently than above.
                 // The Y register is added *after* the deferencing instead of before.
                 case AddressModes.IndirectY:
-                    memory[GetWordFromMemory(GetImmByte()) + Y] = (byte)data;
+                    _systemBus.Write( (ushort)(GetWordFromMemory(GetImmByte()) + Y), (byte)data);
                     break;
 
                 // Relative is used for branching, the immediate value is a
@@ -1260,21 +1383,21 @@ namespace e6502CPU
                 // Best programming practice is to place your variables in 0x00-0xff.
                 // Retrieve the byte at the indicated memory location.
                 case AddressModes.ZeroPage:
-                    memory[GetImmByte()] = (byte)data;
+                    _systemBus.Write( GetImmByte(), (byte)data);
                     break;
                 case AddressModes.ZeroPageX:
-                    memory[(GetImmByte() + X) & 0xff] = (byte)data;
+                    _systemBus.Write( (ushort)((GetImmByte() + X) & 0xff), (byte) data );
                     break;
                 case AddressModes.ZeroPageY:
-                    memory[(GetImmByte() + Y) & 0xff] = (byte)data;
+                    _systemBus.Write( (ushort)((GetImmByte() + Y) & 0xff), (byte)data);
                     break;
                 case AddressModes.ZeroPage0:
-                    memory[GetWordFromMemory((GetImmByte()) & 0xff)] = (byte)data;
+                    _systemBus.Write( GetWordFromMemory( (GetImmByte()) & 0xff ), (byte) data );
                     break;
 
                 // for this mode do the same thing as ZeroPage
                 case AddressModes.BranchExt:
-                    memory[GetImmByte()] = (byte)data;
+                    _systemBus.Write( GetImmByte(), (byte) data );
                     break;
 
                 default:
@@ -1284,17 +1407,17 @@ namespace e6502CPU
 
         private ushort GetWordFromMemory(int address)
         {
-            return (ushort)((memory[address + 1] << 8 | memory[address]) & 0xffff);
+            return (ushort)((_systemBus.Read((ushort)(address + 1)) << 8 | _systemBus.Read((ushort)address)) & 0xffff);
         }
 
         private ushort GetImmWord()
         {
-            return (ushort)((memory[PC + 2] << 8 | memory[PC + 1]) & 0xffff);
+            return (ushort)((_systemBus.Read((ushort)(PC + 2)) << 8 | _systemBus.Read((ushort)(PC + 1)) ) & 0xffff);
         }
 
         private byte GetImmByte()
         {
-            return memory[PC + 1];
+            return _systemBus.Read((ushort)(PC + 1));
         }
 
         private int SignExtend(int num)
@@ -1307,22 +1430,22 @@ namespace e6502CPU
 
         private void Push(byte data)
         {
-            memory[(0x0100 | SP)] = data;
+            _systemBus.Write((ushort) (0x0100 | SP), data );
             SP--;
         }
 
         private void Push(ushort data)
         {
             // HI byte is in a higher address, LO byte is in the lower address
-            memory[(0x0100 | SP)] = (byte)(data >> 8);
-            memory[(0x0100 | (SP-1))] = (byte)(data & 0xff);
+            _systemBus.Write( (ushort) (0x0100 | SP), (byte)(data >> 8));
+            _systemBus.Write( (ushort) (0x0100 | (SP-1)), (byte)(data & 0xff));
             SP -= 2;
         }
 
         private byte PopByte()
         {
             SP++;
-            return memory[(0x0100 | SP)];
+            return _systemBus.Read( (ushort)(0x0100 | SP) );
         }
         
         private ushort PopWord()
@@ -1330,7 +1453,7 @@ namespace e6502CPU
             // HI byte is in a higher address, LO byte is in the lower address
             SP += 2;
             ushort idx = (ushort)(0x0100 | SP);
-            return (ushort)((memory[idx] << 8 | memory[idx-1]) & 0xffff);
+            return (ushort)((_systemBus.Read(idx) << 8 | _systemBus.Read((ushort)(idx-1))) & 0xffff);
         }
 
         private void ADC(byte oper)
@@ -1426,7 +1549,34 @@ namespace e6502CPU
 
                 PC += (ushort)oper;
             }
+        }
 
+        private int PrefetchBranch(bool flag)
+        {
+            int extraCycles = 0;
+            int oper = GetOperand( _currentOP.AddressMode );
+
+            if( flag )
+            {
+                // extra cycle on branch taken
+                extraCycles++;
+
+                // extra cycle if branch destination is a different page than
+                // the next instruction
+                if( (PC & 0xff00) != ((PC + oper) & 0xff00) )
+                    extraCycles++;
+                                
+            }
+            return extraCycles;
+        }
+
+        public string DasmNextInstruction()
+        {
+            OpCodeRecord oprec = _opCodeTable.OpCodes[ _systemBus.Read( PC ) ];
+            if( oprec.Bytes == 3 )
+                return oprec.Dasm( GetImmWord() );
+            else
+                return oprec.Dasm( GetImmByte() );
         }
     }
 }

@@ -17,9 +17,13 @@ namespace e6502Tests
              *  If the program gets to PC=$06ec then all tests passed.
              */
 
-            e6502 cpu = new e6502(e6502Type.NMOS);
-            cpu.LoadProgram(0x0400, File.ReadAllBytes(@"..\..\Resources\6502_interrupt_test.bin"));
-            cpu.PC = 0x0400;
+            e6502 cpu = new e6502();
+            TestROM rom = new TestROM( 0x10000, 0x0400, File.ReadAllBytes( @"..\..\Resources\6502_interrupt_test.bin" ) );
+            cpu.Boot( rom, 0x0400 );
+
+            //e6502 cpu = new e6502(e6502Type.NMOS);
+            //cpu.LoadProgram(0x0400, File.ReadAllBytes(@"..\..\Resources\6502_interrupt_test.bin"));
+            //cpu.PC = 0x0400;
 
             ushort prev_pc;
             long instr_count = 0;

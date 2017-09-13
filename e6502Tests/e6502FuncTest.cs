@@ -17,23 +17,35 @@ namespace e6502Tests
              *  If the program gets to PC=$3399 then all tests passed.
              */
 
-            e6502 cpu = new e6502(e6502Type.NMOS);
-            cpu.LoadProgram(0x0000, File.ReadAllBytes(@"..\..\Resources\6502_functional_test.bin"));
-            cpu.PC = 0x0400;
+            e6502 cpu = new e6502();
+            TestROM rom = new TestROM( 0x10000, 0x0000, File.ReadAllBytes( @"..\..\Resources\6502_functional_test.bin" ) );
+            cpu.Boot( rom, 0x0400 );
 
-            ushort prev_pc;
+            ushort prev_pc = 0x0400;
             long instr_count = 0;
             long cycle_count = 0;
             Stopwatch sw = new Stopwatch();
 
             sw.Start();
+            int same_pc_count = 0;
             do
             {
-                instr_count++;
-                prev_pc = cpu.PC;
-                cycle_count += cpu.ExecuteNext();
-            } while (prev_pc != cpu.PC);
+                cpu.Tick();
+                if( prev_pc == cpu.PC )
+                {
+                    same_pc_count++;
+                }
+                else
+                {
+                    instr_count++;
+                    same_pc_count = 0;
+                    prev_pc = cpu.PC;
+                }
+                cycle_count++;
+            } while( same_pc_count < 10 );
             sw.Stop();
+
+            cycle_count -= same_pc_count / 2;
 
             Debug.WriteLine("Time: " + sw.ElapsedMilliseconds.ToString() + " ms");
             Debug.WriteLine("Cycles: " + cycle_count.ToString("N0"));

@@ -18,9 +18,9 @@ namespace e6502Tests
              *  If the program gets to PC=$45C0 then all tests passed.
              */
 
-            e6502 cpu = new e6502( e6502Type.CMOS );
-            cpu.LoadProgram( 0x4000, File.ReadAllBytes( @"..\..\Resources\AllSuiteA.bin" ) );
-            cpu.PC = 0x0400;
+            e6502 cpu = new e6502(e6502Type.CMOS);
+            TestROM rom = new TestROM( 0x10000, 0x4000, File.ReadAllBytes( @"..\..\Resources\AllSuiteA.bin" ) );
+            cpu.Boot( rom, 0x0400 );
 
             ushort prev_pc;
             long instr_count = 0;
@@ -36,7 +36,7 @@ namespace e6502Tests
             Debug.WriteLine( "Instructions: " + instr_count.ToString( "N0" ) );
 
             Assert.AreEqual( 0x45c0, cpu.PC, "Test program failed at $" + cpu.PC.ToString( "X4" ) );
-            Assert.AreEqual( 0xff, cpu.memory[ 0x0210 ], "Test value failed" );    
+            Assert.AreEqual( 0xff, rom.Read( 0x0210 ), "Test value failed" );    
         }
     }
 }

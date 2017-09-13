@@ -38,32 +38,32 @@ namespace e6502Debugger
             txtBreakPoint.Text = "";
         }
 
-        // This is here for easy loading while I am debugging.
-        private void LoadTestProgram()
-        {
-            cpu = new e6502(e6502Type.CMOS);
-            cpu.LoadProgram(0x0000, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\6502_functional_test.bin"));
-            cpu.PC = 0x0400;
-            UpdateScreen();
-        }
+        //// This is here for easy loading while I am debugging.
+        //private void LoadTestProgram()
+        //{
+        //    cpu = new e6502(e6502Type.CMOS);
+        //    cpu.LoadProgram(0x0000, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\6502_functional_test.bin"));
+        //    cpu.PC = 0x0400;
+        //    UpdateScreen();
+        //}
 
-        // This is here for easy loading while I am debugging.
-        private void LoadExtendedTestProgram()
-        {
-            cpu = new e6502(e6502Type.CMOS);
-            cpu.LoadProgram(0x0000, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\65C02_extended_opcodes_test.bin"));
-            cpu.PC = 0x0400;
-            UpdateScreen();
-        }
+        //// This is here for easy loading while I am debugging.
+        //private void LoadExtendedTestProgram()
+        //{
+        //    cpu = new e6502(e6502Type.CMOS);
+        //    cpu.LoadProgram(0x0000, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\65C02_extended_opcodes_test.bin"));
+        //    cpu.PC = 0x0400;
+        //    UpdateScreen();
+        //}
 
-        // This is here for easy loading while I am debugging.
-        private void LoadInterruptTestProgram()
-        {
-            cpu = new e6502(e6502Type.CMOS);
-            cpu.LoadProgram(0x0400, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\6502_interrupt_test.bin"));
-            cpu.PC = 0x0400;
-            UpdateScreen();
-        }
+        //// This is here for easy loading while I am debugging.
+        //private void LoadInterruptTestProgram()
+        //{
+        //    cpu = new e6502(e6502Type.CMOS);
+        //    cpu.LoadProgram(0x0400, File.ReadAllBytes(@"..\..\..\e6502Tests\Resources\6502_interrupt_test.bin"));
+        //    cpu.PC = 0x0400;
+        //    UpdateScreen();
+        //}
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -74,7 +74,7 @@ namespace e6502Debugger
             {
                 byte[] program = File.ReadAllBytes(dlg.FileName);
                 cpu = new e6502(e6502Type.CMOS);
-                cpu.LoadProgram(0x0000, program);
+                //cpu.Boot(0x0000, program);
 
                 // this test program is supposed to start at 0x0400;
                 cpu.PC = 0x0400;
@@ -179,12 +179,12 @@ namespace e6502Debugger
                 sb.Append("$" + pc.ToString("X4") + ": ");
                 for (ii = 0x00; ii <= 0x07; ii++)
                 {
-                    sb.Append(cpu.memory[pc + ii].ToString("X2") + " ");
+//                    sb.Append(cpu.memory[pc + ii].ToString("X2") + " ");
                 }
                 sb.Append(" - ");
                 for (; ii <= 0x0f; ii++)
                 {
-                    sb.Append(cpu.memory[pc + ii].ToString("X2") + " ");
+                    //sb.Append(cpu.memory[pc + ii].ToString("X2") + " ");
                 }
                 sb.AppendLine();
                 if (emptyList)
@@ -215,7 +215,7 @@ namespace e6502Debugger
         private void btnRestart_Click(object sender, EventArgs e)
         {
             lblHalted.Visible = false;
-            cpu.Boot();
+            //cpu.Boot();
             cpu.PC = 0x0400;
             UpdateScreen();
         }
