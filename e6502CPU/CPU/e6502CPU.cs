@@ -92,6 +92,15 @@ namespace e6502CPU
             _cpuType = type;
         }
 
+        public string DasmNextInstruction()
+        {
+            OpCodeRecord oprec = _opCodeTable.OpCodes[ _systemBus.Read( PC ) ];
+            if( oprec.Bytes == 3 )
+                return oprec.Dasm( GetImmWord() );
+            else
+                return oprec.Dasm( GetImmByte() );
+        }
+
         public void Boot(ISystemBus bus)
         {
             this.Boot( bus, 0x0000 );
@@ -140,9 +149,6 @@ namespace e6502CPU
             }
         }
 
-        // Executes the next instruction and returns the number of clock cycles taken.
-        // It is intended that the consumer of this class will run the CPU by either calling Tick() or ExecuteNext() 
-        // and not use them interchangably.
         public int ExecuteNext()
         {
             _extraCycles = 0;
@@ -1464,8 +1470,6 @@ namespace e6502CPU
             CF = (answer > 0xff);
             ZF = ((answer & 0xff) == 0x00);
             NF = (answer & 0x80) == 0x80;
-
-            //ushort temp = (ushort)(~(A ^ oper) & (A ^ answer) & 0x80);
             VF = (~(A ^ oper) & (A ^ answer) & 0x80) != 0x00;
 
             A = (byte)answer;
@@ -1568,15 +1572,6 @@ namespace e6502CPU
                                 
             }
             return extraCycles;
-        }
-
-        public string DasmNextInstruction()
-        {
-            OpCodeRecord oprec = _opCodeTable.OpCodes[ _systemBus.Read( PC ) ];
-            if( oprec.Bytes == 3 )
-                return oprec.Dasm( GetImmWord() );
-            else
-                return oprec.Dasm( GetImmByte() );
         }
     }
 }
