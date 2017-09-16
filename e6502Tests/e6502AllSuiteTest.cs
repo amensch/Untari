@@ -1,6 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using e6502CPU;
+using KDS.e6502;
 using System.IO;
 using System.Diagnostics;
 

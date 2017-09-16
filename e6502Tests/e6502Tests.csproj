@@ -59,9 +59,9 @@
     <Compile Include="e6502AllSuiteTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\e6502CPU\e6502CPU.csproj">
+    <ProjectReference Include="..\e6502\e6502.csproj">
       <Project>{20dc9955-1ea3-412a-b42d-2cbecaab9d96}</Project>
-      <Name>e6502CPU</Name>
+      <Name>e6502</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

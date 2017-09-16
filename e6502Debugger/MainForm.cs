@@ -7,7 +7,7 @@ using System;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using e6502CPU;
+using KDS.e6502;
 
 namespace e6502Debugger
 {

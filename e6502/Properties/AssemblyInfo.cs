@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("e6502CPU")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle( "e6502" )]
+[assembly: AssemblyDescription( "Motorola 6502 CPU emulator" )]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("e6502CPU")]
-[assembly: AssemblyCopyright("Copyright ©  2016")]
+[assembly: AssemblyCompany( "KDS" )]
+[assembly: AssemblyProduct( "e6502" )]
+[assembly: AssemblyCopyright( "Copyright ©  2017" )]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
