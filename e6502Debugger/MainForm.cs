@@ -7,7 +7,7 @@ using System;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using KDS.e6502;
+using Untari;
 
 namespace e6502Debugger
 {

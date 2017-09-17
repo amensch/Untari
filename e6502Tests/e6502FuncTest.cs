@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using KDS.e6502;
 using System.IO;
 using System.Diagnostics;
 
