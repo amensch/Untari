@@ -11,18 +11,19 @@ public class RAM : IBusDevice
      */
 
     private byte[] _ram;
-    private const ushort ADDRESS_MASK = 0x7f;
+    private const ushort ADDRESS_MASK = 0x007f;
+    private const int RAM_SIZE = 128;
 
-    public void PowerOn()
+    public void Boot()
     {
-        _ram = new byte[ 128 ];
+        _ram = new byte[ RAM_SIZE ];
 
-        // Initialize RAM to be random values
-        //System.Random rnd = new System.Random();
-        //for( int ii = 0; ii < 128; ii++ )
-        //{
-        //    _ram[ ii ] = (byte)rnd.Next( 0, 0x100 );
-        //}
+        //Initialize RAM to be random values
+        System.Random rnd = new System.Random();
+        for( int ii = 0; ii < RAM_SIZE; ii++ )
+        {
+            _ram[ ii ] = (byte) rnd.Next( 0, 0x100 );
+        }
     }
 
     public byte Read( ushort addr )

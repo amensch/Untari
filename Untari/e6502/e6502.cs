@@ -65,9 +65,9 @@ public class e6502
 
     private e6502Type _cpuType { get; set; }
 
-    public e6502() : this( e6502Type.NMOS ) { }
+    public e6502( IBusDevice bus ) : this( bus, e6502Type.NMOS ) { }
 
-    public e6502(e6502Type type)
+    public e6502( IBusDevice bus, e6502Type type)
     {
         _opCodeTable = new OpCodeTable();
 
@@ -88,6 +88,7 @@ public class e6502
         IRQWaiting = false;
 
         _cpuType = type;
+        _systemBus = bus;
     }
 
     public string DasmNextInstruction()
@@ -99,9 +100,9 @@ public class e6502
             return oprec.Dasm( GetImmByte() );
     }
 
-    public void Boot(IBusDevice bus)
+    public void Boot()
     {
-        this.Boot( bus, 0x0000 );
+        this.Boot( 0x0000 );
 
         // On reset the addresses 0xfffc and 0xfffd are read and PC is loaded with this value.
         // It is expected that the initial program loaded will have these values set to something.
@@ -109,9 +110,8 @@ public class e6502
         PC = GetWordFromMemory(0xfffc);
     }
 
-    public void Boot(IBusDevice bus, ushort initProgramCounter)
+    public void Boot(ushort initProgramCounter)
     {
-        _systemBus = bus;
 
         PC = initProgramCounter;
 
@@ -223,46 +223,54 @@ public class e6502
         {
             // BCC - branch on carry clear
             case 0x90:
-                extraCycles += PrefetchBranch( !CF );
+                if( !CF )
+                    extraCycles += PrefetchBranch();
                 break;
             // BCS - branch on carry set
             case 0xb0:
-                extraCycles += PrefetchBranch( CF );
+                if( CF )
+                    extraCycles += PrefetchBranch();
                 break;
             // BEQ - branch on zero
             case 0xf0:
-                extraCycles += PrefetchBranch( ZF);
+                if( ZF )
+                    extraCycles += PrefetchBranch();
                 break;
             // BMI - branch on negative
             case 0x30:
-                extraCycles += PrefetchBranch( NF );
+                if( NF )
+                    extraCycles += PrefetchBranch();
                 break;
 
             // BNE - branch on non zero
             case 0xd0:
-                extraCycles += PrefetchBranch( !ZF );
+                if( !ZF )
+                    extraCycles += PrefetchBranch();
                 break;
 
             // BPL - branch on non negative
             case 0x10:
-                extraCycles += PrefetchBranch( !NF );
+                if( !NF )
+                    extraCycles += PrefetchBranch();
                 break;
 
             // BRA - unconditional branch to immediate address
             // NOTE: In OpcodeList.txt the number of clock cycles is one less than the documentation.
             // This is because CheckBranch() adds one when a branch is taken, which in this case is always.
             case 0x80:
-                extraCycles += PrefetchBranch( true );
+                extraCycles += PrefetchBranch();
                 break;
 
             // BVC - branch on overflow clear
             case 0x50:
-                extraCycles += PrefetchBranch( !VF );
+                if( !VF )
+                    extraCycles += PrefetchBranch();
                 break;
 
             // BVS - branch on overflow set
             case 0x70:
-                extraCycles += PrefetchBranch( VF );
+                if( VF )
+                    extraCycles += PrefetchBranch();
                 break;
 
         }
@@ -430,19 +438,22 @@ public class e6502
             // BCC - branch on carry clear
             case 0x90:
                 PC += _currentOP.Bytes;
-                CheckBranch(!CF, oper);
+                if( !CF )
+                    TakeBranch( oper );
                 break;
 
             // BCS - branch on carry set
             case 0xb0:
                 PC += _currentOP.Bytes;
-                CheckBranch(CF, oper);
+                if(CF)
+                    TakeBranch( oper );
                 break;
 
             // BEQ - branch on zero
             case 0xf0:
                 PC += _currentOP.Bytes;
-                CheckBranch(ZF, oper);
+                if(ZF)
+                    TakeBranch( oper );
                 break;
 
             // BIT - test bits in memory with accumulator (NZV)
@@ -472,19 +483,22 @@ public class e6502
             // BMI - branch on negative
             case 0x30:
                 PC += _currentOP.Bytes;
-                CheckBranch(NF, oper);
-                break;
+                if(NF)
+                    TakeBranch( oper );
+                 break;
 
             // BNE - branch on non zero
             case 0xd0:
                 PC += _currentOP.Bytes;
-                CheckBranch(!ZF, oper);
+                if(!ZF)
+                    TakeBranch( oper );
                 break;
 
             // BPL - branch on non negative
             case 0x10:
                 PC += _currentOP.Bytes;
-                CheckBranch(!NF, oper);
+                if(!NF)
+                    TakeBranch( oper );
                 break;
 
             // BRA - unconditional branch to immediate address
@@ -492,7 +506,7 @@ public class e6502
             // This is because CheckBranch() adds one when a branch is taken, which in this case is always.
             case 0x80:
                 PC += _currentOP.Bytes;
-                CheckBranch(true, oper);
+                TakeBranch( oper );
                 break;
 
             // BRK - force break (I)
@@ -515,13 +529,15 @@ public class e6502
             // BVC - branch on overflow clear
             case 0x50:
                 PC += _currentOP.Bytes;
-                CheckBranch(!VF, oper);
+                if(!VF)
+                    TakeBranch( oper );
                 break;
 
             // BVS - branch on overflow set
             case 0x70:
                 PC += _currentOP.Bytes;
-                CheckBranch(VF, oper);
+                if(VF)
+                    TakeBranch( oper );
                 break;
 
             // CLC - clear carry flag
@@ -1416,7 +1432,7 @@ public class e6502
 
     private ushort GetImmWord()
     {
-        return (ushort)((_systemBus.Read((ushort)(PC + 2)) << 8 | _systemBus.Read((ushort)(PC + 1)) ) & 0xffff);
+        return GetWordFromMemory( PC + 1 );
     }
 
     private byte GetImmByte()
@@ -1537,38 +1553,30 @@ public class e6502
         PC = GetWordFromMemory(vector);
     }
         
-    private void CheckBranch(bool flag, int oper)
+    private void TakeBranch(int oper)
     {
-        if (flag)
-        {
-            // extra cycle on branch taken
+        // extra cycle on branch taken
+        _extraCycles++;
+
+        // extra cycle if branch destination is a different page than
+        // the next instruction
+        if ((PC & 0xff00) != ((PC + oper) & 0xff00))
             _extraCycles++;
 
-            // extra cycle if branch destination is a different page than
-            // the next instruction
-            if ((PC & 0xff00) != ((PC + oper) & 0xff00))
-                _extraCycles++;
-
-            PC += (ushort)oper;
-        }
+        PC += (ushort)oper;
     }
 
-    private int PrefetchBranch(bool flag)
+    private int PrefetchBranch()
     {
-        int extraCycles = 0;
+        // one extra cycle for a branch taken
+        int extraCycles = 1;
         int oper = GetOperand( _currentOP.AddressMode );
 
-        if( flag )
-        {
-            // extra cycle on branch taken
+        // extra cycle if branch destination is a different page than
+        // the next instruction
+        if( (PC & 0xff00) != ((PC + oper) & 0xff00) )
             extraCycles++;
-
-            // extra cycle if branch destination is a different page than
-            // the next instruction
-            if( (PC & 0xff00) != ((PC + oper) & 0xff00) )
-                extraCycles++;
                                 
-        }
         return extraCycles;
     }
 }
