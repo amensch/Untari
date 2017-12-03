@@ -1,17 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class SystemBus : IBusDevice
 {
-    private e6502 _cpu;
-    private PIA _pia;
-    private RAM _ram;
-    private Cartridge _cartridge;
-    private TIA _tia;
-
     // A12 = 0, A7 = 1,  A9 = 1
     private const int PIA_SELECT_MASK = 0x1280;
     private const int PIA_CHIP_SELECT = 0x0280;
@@ -28,52 +18,56 @@ public class SystemBus : IBusDevice
     private const int TIA_SELECT_MASK = 0x1080;
     private const int TIA_CHIP_SELECT = 0x0000;
 
+    private Cartridge cartridge;
+    private PIA pia;
+    private RAM ram;
+    private TIA tia;
+
+    private BusDeviceInterface DeviceInterface;
+
     public SystemBus()
     {
-        _pia = new PIA();
-        _ram = new RAM();
-        _tia = new TIA();
-        _cartridge = new Cartridge();
-        _cpu = new e6502(this);
-    }
+        // create the bus devices
+        cartridge = new Cartridge();
+        pia = new PIA();
+        ram = new RAM();
+        tia = new TIA();
 
-    public void Boot()
-    {
-        _cpu.Boot();
-        _pia.Boot();
-        _ram.Boot();
-        _tia.Boot();
-        _cartridge.Boot();
+        // create the chain of command for Read and Write
+        DeviceInterface = new BusDeviceInterface( cartridge, CARTRIDGE_SELECT_MASK, CARTRIDGE_CHIP_SELECT );
+        BusDeviceInterface PIAInterface = new BusDeviceInterface( pia, PIA_SELECT_MASK, PIA_CHIP_SELECT );
+        BusDeviceInterface RAMInterface = new BusDeviceInterface( ram, RAM_SELECT_MASK, RAM_CHIP_SELECT );
+        BusDeviceInterface TIAInterface = new BusDeviceInterface( tia, TIA_SELECT_MASK, TIA_CHIP_SELECT );
+
+        DeviceInterface.SetNext( PIAInterface );
+        PIAInterface.SetNext( RAMInterface );
+        RAMInterface.SetNext( TIAInterface );
     }
 
     public byte Read( ushort addr )
     {
-        return GetSelectedChip( addr ).Read( addr );
+        return DeviceInterface.Read( addr );
     }
 
-    public void Write( ushort addr, byte data )
+    public void Write( ushort addr, byte value )
     {
-        GetSelectedChip( addr ).Write( addr, data );
+        DeviceInterface.Write( addr, value );
     }
 
-    private IBusDevice GetSelectedChip(ushort addr)
+    public void Tick()
     {
-        // Bits 7 and 12 act as chip select.
-        // Bit 9 acts as RAM select when PIA is selected.
+        Console.WriteLine( "System Bus Tick" );
+        cartridge.Tick();
+        pia.Tick();
+        tia.Tick();
+    }
 
-        if( (addr & CARTRIDGE_SELECT_MASK) == CARTRIDGE_CHIP_SELECT )
-        {
-            return _cartridge;
-        }
-        else if( (addr & PIA_SELECT_MASK) == PIA_CHIP_SELECT )
-        {
-            return _pia;
-        }
-        else if( (addr & RAM_SELECT_MASK) == RAM_CHIP_SELECT )
-        {
-            return _ram;
-        }
-        else
-            return _tia;
+    public void Boot()
+    {
+        Console.WriteLine( "System Bus Boot" );
+        cartridge.Boot();
+        ram.Boot();
+        pia.Boot();
+        tia.Boot();
     }
 }
