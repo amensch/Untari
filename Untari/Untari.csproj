@@ -64,12 +64,14 @@
     <Compile Include="PIA6532\RAM.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="System\IReadyDevice.cs" />
     <Compile Include="System\SystemBus.cs" />
     <Compile Include="System\SystemConsole.cs" />
     <Compile Include="TIA\IColorPalette.cs" />
     <Compile Include="TIA\NTSCColorPalette.cs" />
     <Compile Include="TIA\PALColorPalette.cs" />
     <Compile Include="TIA\TIA.cs" />
+    <Compile Include="TIA\TIAConstants.cs" />
     <Compile Include="TIA\VideoPicture.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

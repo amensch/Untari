@@ -2,12 +2,17 @@
 
 public class TIA : IBusDevice
 {
+    // the TIA only uses six bits A0-A5
+    private const ushort ADDRESS_MASK = 0x003f;
+
     // 68 HBLANK, then 160 active = 228 total
     private int horizontal_position;
+    private const int END_OF_HBLANK = 68;
     private const int MAX_HORIZONTAL = 228;
 
     // 3 VSYNC, 37 VBLANK, 192 active, 30 OVERSCAN = 262 total
     private int vertical_position;
+    private const int END_OF_VBLANK = 40;
     private const int MAX_VERTICAL = 262;
 
     // Pixel action delegates for each x,y position
@@ -17,8 +22,18 @@ public class TIA : IBusDevice
     // object representing the current visible screen
     private VideoPicture Picture = new VideoPicture();
 
-    public TIA()
+    // the color palette
+    private NTSCColorPalette Palette = new NTSCColorPalette();
+
+    // internal registers
+    private byte[] memory;
+
+    private IReadyDevice CPU;
+
+    public TIA(IReadyDevice cpu)
     {
+        CPU = cpu;
+
         // create an array to call the proper delegate based on the current active pixel
         for( int horz = 0; horz < MAX_HORIZONTAL; horz++)
         {
@@ -37,7 +52,7 @@ public class TIA : IBusDevice
             for( int vert = 40; vert < 232; vert++ )
             {
                 // add HBLANK
-                if( horz < 68 )
+                if( horz < END_OF_HBLANK )
                 {
                     pixelActions[ horz, vert ] = new PixelAction( HorizontalBlank );
                 }
@@ -60,6 +75,7 @@ public class TIA : IBusDevice
     {
         horizontal_position = 1;
         vertical_position = 1;
+        memory = new byte[ 0x3f ];
     }
 
     public void Tick()
@@ -72,15 +88,22 @@ public class TIA : IBusDevice
 
     public byte Read( ushort addr )
     {
-        throw new NotImplementedException();
+        return memory[ (ushort) (addr & ADDRESS_MASK) ];
     }
 
     public void Write( ushort addr, byte data )
     {
-        // WSYNC
-        if((addr & 0xff02) == 0x02)
-        {
+        ushort tia_addr = (ushort) (addr & ADDRESS_MASK);
+        memory[ tia_addr ] = data;
 
+        switch( tia_addr )
+        {
+            case TIAConstants.WSYNC:
+                if(data == 0x00)
+                {
+                    CPU.ClearReadyLatch();
+                }
+                break;
         }
     }
 
@@ -96,6 +119,7 @@ public class TIA : IBusDevice
 
         if( horizontal_position > MAX_HORIZONTAL )
         {
+            CPU.SetReadyLatch();
             horizontal_position = 1;
             vertical_position++;
 
@@ -126,7 +150,6 @@ public class TIA : IBusDevice
 
     private void HorizontalBlank()
     {
-
     }
 
     private void Overscan()
@@ -136,6 +159,8 @@ public class TIA : IBusDevice
 
     private void ViewableArea()
     {
-
+        //Picture.UpdatePixel( horizontal_position - END_OF_HBLANK, 
+        //                        vertical_position - END_OF_VBLANK, 
+        //                        Palette.GetColor( memory[ TIAConstants.COLUBK ] ) );
     }
 }

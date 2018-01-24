@@ -22,6 +22,7 @@ public class SystemBus : IBusDevice
     private PIA pia;
     private RAM ram;
     private TIA tia;
+    private e6502 cpu;
 
     private BusDeviceInterface DeviceInterface;
 
@@ -31,7 +32,8 @@ public class SystemBus : IBusDevice
         cartridge = new Cartridge();
         pia = new PIA();
         ram = new RAM();
-        tia = new TIA();
+        cpu = new e6502( this );
+        tia = new TIA(cpu);
 
         // create the chain of command for Read and Write
         DeviceInterface = new BusDeviceInterface( cartridge, CARTRIDGE_SELECT_MASK, CARTRIDGE_CHIP_SELECT );
@@ -56,7 +58,7 @@ public class SystemBus : IBusDevice
 
     public void Tick()
     {
-        Console.WriteLine( "System Bus Tick" );
+        cpu.Tick();
         cartridge.Tick();
         pia.Tick();
         tia.Tick();
@@ -64,10 +66,10 @@ public class SystemBus : IBusDevice
 
     public void Boot()
     {
-        Console.WriteLine( "System Bus Boot" );
-        cartridge.Boot();
+        cpu.Boot();
         ram.Boot();
         pia.Boot();
         tia.Boot();
+        cartridge.Boot();
     }
 }

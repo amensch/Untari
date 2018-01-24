@@ -11,7 +11,7 @@ public enum e6502Type
     NMOS
 };
 
-public class e6502
+public class e6502 : IReadyDevice
 {
     // Main Register
     public byte A;
@@ -46,7 +46,7 @@ public class e6502
     public bool NMIWaiting { get; set; }
 
     // Ready flag present on 6507 editions
-    public bool RDY { get; set; }
+    private bool RDY { get; set; }
 
     // System bus
     private IBusDevice _systemBus;
@@ -102,7 +102,7 @@ public class e6502
 
     public void Boot()
     {
-        this.Boot( 0x0000 );
+        this.Boot( 0xf000 );
 
         // On reset the addresses 0xfffc and 0xfffd are read and PC is loaded with this value.
         // It is expected that the initial program loaded will have these values set to something.
@@ -1578,5 +1578,15 @@ public class e6502
             extraCycles++;
                                 
         return extraCycles;
+    }
+
+    public void SetReadyLatch()
+    {
+        RDY = true;
+    }
+
+    public void ClearReadyLatch()
+    {
+        RDY = false;
     }
 }
