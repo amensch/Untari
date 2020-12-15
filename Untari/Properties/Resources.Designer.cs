@@ -19,7 +19,7 @@ namespace KDS.Untari.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -57,26 +57,6 @@ namespace KDS.Untari.Properties {
             }
             set {
                 resourceCulture = value;
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to addressing    assembler    opc  bytes  cycles
-        ///--------------------------------------------
-        ///immediate     ADC #oper     69    2     2
-        ///zeropage      ADC oper      65    2     3
-        ///zeropage,X    ADC oper,X    75    2     4
-        ///absolute      ADC oper      6D    3     4
-        ///absolute,X    ADC oper,X    7D    3     4*
-        ///absolute,Y    ADC oper,Y    79    3     4*
-        ///(indirect,X)  ADC (oper,X)  61    2     6
-        ///(indirect),Y  ADC (oper),Y  71    2     5*
-        ///zeropage,0    ADC (oper)    72    2     5
-        ///immediate     AND #oper     2 [rest of string was truncated]&quot;;.
-        /// </summary>
-        public static string OpcodeList {
-            get {
-                return ResourceManager.GetString("OpcodeList", resourceCulture);
             }
         }
     }

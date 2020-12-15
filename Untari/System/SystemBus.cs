@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KDS.e6502CPU;
+using System;
 
 public class SystemBus : IBusDevice
 {
