@@ -57,6 +57,10 @@
     <Compile Include="TestROM.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\e6502\e6502CPU\e6502CPU.csproj">
+      <Project>{20dc9955-1ea3-412a-b42d-2cbecaab9d96}</Project>
+      <Name>e6502CPU</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Untari\Untari.csproj">
       <Project>{034cf67c-4b07-4b66-bb90-0e0404dfa5af}</Project>
       <Name>Untari</Name>

@@ -1,4 +1,5 @@
 ﻿using KDS.e6502CPU;
+using KDS.Untari;
 using System;
 
 public class SystemBus : IBusDevice
@@ -23,7 +24,7 @@ public class SystemBus : IBusDevice
     private PIA pia;
     private RAM ram;
     private TIA tia;
-    private e6502 cpu;
+    private CPU cpu;
 
     private BusDeviceInterface DeviceInterface;
 
@@ -33,7 +34,7 @@ public class SystemBus : IBusDevice
         cartridge = new Cartridge();
         pia = new PIA();
         ram = new RAM();
-        cpu = new e6502( this );
+        cpu = new CPU( this );
         tia = new TIA(cpu);
 
         // create the chain of command for Read and Write

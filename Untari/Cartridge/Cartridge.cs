@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using KDS.e6502CPU;
 
 public class Cartridge : IBusDevice
 {
