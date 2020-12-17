@@ -18,18 +18,18 @@ public class TIA : IBusDevice
 
     // Pixel action delegates for each x,y position
     private delegate void PixelAction();
-    private PixelAction[,] pixelActions = new PixelAction[ MAX_HORIZONTAL, MAX_VERTICAL ];
+    private readonly PixelAction[,] pixelActions = new PixelAction[ MAX_HORIZONTAL, MAX_VERTICAL ];
 
     // object representing the current visible screen
-    private VideoPicture Picture = new VideoPicture();
+    private readonly VideoPicture Picture = new VideoPicture();
 
     // the color palette
-    private NTSCColorPalette Palette = new NTSCColorPalette();
+    private readonly NTSCColorPalette Palette = new NTSCColorPalette();
 
     // internal registers
     private byte[] memory;
 
-    private IReadyDevice CPU;
+    private readonly IReadyDevice CPU;
 
     public TIA(IReadyDevice cpu)
     {

@@ -2,7 +2,7 @@
 
 public class SystemConsole
 {
-    private SystemBus bus;
+    private readonly SystemBus bus;
 
     public SystemConsole()
     {

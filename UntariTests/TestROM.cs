@@ -2,7 +2,7 @@
 
 public class TestROM : IBusDevice
 {
-    private byte[] ROM;
+    private readonly byte[] ROM;
 
     public TestROM( int size )
     {

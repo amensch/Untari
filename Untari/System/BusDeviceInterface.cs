@@ -4,9 +4,9 @@ using KDS.e6502CPU;
 public class BusDeviceInterface
 {
     protected BusDeviceInterface NextBusDevice;
-    private IBusDevice BusDevice;
-    private int DeviceSelectMask;
-    private int DeviceChipSelect;
+    private readonly IBusDevice BusDevice;
+    private readonly int DeviceSelectMask;
+    private readonly int DeviceChipSelect;
 
     public BusDeviceInterface( IBusDevice device, int selectMask, int chipSelect )
     {

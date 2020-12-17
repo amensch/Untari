@@ -2,7 +2,7 @@
 
 public class NTSCColorPalette : IColorPalette
 {
-    private Dictionary<int, int> _colors = new Dictionary<int, int>
+    private readonly Dictionary<int, int> _colors = new Dictionary<int, int>
     {
         { 0x00, 0x000000 },
         { 0x02,	0x404040 },	 	

@@ -20,13 +20,13 @@ public class SystemBus : IBusDevice
     private const int TIA_SELECT_MASK = 0x1080;
     private const int TIA_CHIP_SELECT = 0x0000;
 
-    private Cartridge cartridge;
-    private PIA pia;
-    private RAM ram;
-    private TIA tia;
-    private CPU cpu;
+    private readonly Cartridge cartridge;
+    private readonly PIA pia;
+    private readonly RAM ram;
+    private readonly TIA tia;
+    private readonly CPU cpu;
 
-    private BusDeviceInterface DeviceInterface;
+    private readonly BusDeviceInterface DeviceInterface;
 
     public SystemBus()
     {
