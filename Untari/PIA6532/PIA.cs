@@ -16,13 +16,13 @@ public class PIA : IBusDevice
     // "0" is input and "1" is output.
     //
     // The port itself is read and written at 0x0280 (SWCHA)
-    private byte _portA;
-    private byte _portA_IO;
+    private byte SWCHA;
+    private byte SWACNT;    // 0x0281 (data direction register)
 
     // port B is used for the console switches and is read only
     // port is read via 0x0282 (SWCHB)
-    private byte _portB;
-    private byte _portB_IO;
+    private byte SWCHB;
+    private byte SWBCNT;    // 0x0283 (data direction register)
 
     public void Boot()
     {
@@ -34,11 +34,11 @@ public class PIA : IBusDevice
         System.Random rnd = new System.Random();
         _timerCountValue = (byte) rnd.Next( 0, 0x100 );
 
-        _portA = 0;
-        _portB = 0;
+        SWCHA = 0;
+        SWCHB = 0;
 
-        _portA_IO = 0xff;    // IO is high (output) by default
-        _portB_IO = 0;       // system is hardwired for input only
+        SWACNT = 0xff;    // IO is high (output) by default
+        SWBCNT = 0;       // system is hardwired for input only
     }
 
     public byte Read( ushort addr )
@@ -49,25 +49,27 @@ public class PIA : IBusDevice
         switch( register )
         {
             case 0x00:
-                value = _portA;
+                value = SWCHA;
                 break;
             case 0x01:
+                value = SWACNT;
                 break;
             case 0x02:
-                value = _portB;
+                value = SWCHB;
                 break;
             case 0x03:
+                value = SWBCNT;
                 break;
-            case 0x04:
+            case 0x04:  // 0x0284 read value at TIMINT
                 value = (byte)_timerCountValue;
                 break;
-            case 0x05:
+            case 0x05:  // 0x0295 TIM8T
                 value = TIMINT;
                 break;
-            case 0x06:
+            case 0x06:  // 0x0296 TIM64T
                 value = (byte) _timerCountValue;
                 break;
-            case 0x07:
+            case 0x07:  // 0x0297 T1024T
                 value = TIMINT;
                 break;
         }
@@ -81,7 +83,7 @@ public class PIA : IBusDevice
         switch( register )
         {
             case 0x00:
-                _portA = data;
+                SWCHA = data;
                 break;
             case 0x04:
                 SetInterval( data, 1 );

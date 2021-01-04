@@ -1,6 +1,7 @@
 ﻿using KDS.e6502CPU;
 using KDS.Untari;
 using System;
+using System.IO;
 
 public class SystemBus : IBusDevice
 {
@@ -26,8 +27,6 @@ public class SystemBus : IBusDevice
     private readonly TIA tia;
     private readonly CPU cpu;
 
-    private readonly BusDeviceInterface DeviceInterface;
-
     public SystemBus()
     {
         // create the bus devices
@@ -36,26 +35,56 @@ public class SystemBus : IBusDevice
         ram = new RAM();
         cpu = new CPU( this );
         tia = new TIA(cpu);
-
-        // create the chain of command for Read and Write
-        DeviceInterface = new BusDeviceInterface( cartridge, CARTRIDGE_SELECT_MASK, CARTRIDGE_CHIP_SELECT );
-        BusDeviceInterface PIAInterface = new BusDeviceInterface( pia, PIA_SELECT_MASK, PIA_CHIP_SELECT );
-        BusDeviceInterface RAMInterface = new BusDeviceInterface( ram, RAM_SELECT_MASK, RAM_CHIP_SELECT );
-        BusDeviceInterface TIAInterface = new BusDeviceInterface( tia, TIA_SELECT_MASK, TIA_CHIP_SELECT );
-
-        DeviceInterface.SetNext( PIAInterface );
-        PIAInterface.SetNext( RAMInterface );
-        RAMInterface.SetNext( TIAInterface );
     }
 
     public byte Read( ushort addr )
     {
-        return DeviceInterface.Read( addr );
+        // read order: cartridge, PIA, RAM, TIA
+        if((addr & CARTRIDGE_SELECT_MASK) == CARTRIDGE_CHIP_SELECT)
+        {
+            return cartridge.Read(addr);
+        }
+        else if ((addr & PIA_SELECT_MASK) == PIA_CHIP_SELECT)
+        {
+            return pia.Read(addr);
+        }
+        else if((addr & RAM_SELECT_MASK) == RAM_CHIP_SELECT)
+        {
+            return ram.Read(addr);
+        }
+        else if((addr & TIA_SELECT_MASK) == TIA_CHIP_SELECT)
+        {
+            return tia.Read(addr);  
+        }
+        else
+        {
+            throw new InvalidOperationException("No device mask matched for read of address " + addr.ToString("X4"));
+        }
     }
 
     public void Write( ushort addr, byte value )
     {
-        DeviceInterface.Write( addr, value );
+        // write order: cartridge, PIA, RAM, TIA
+        if ((addr & CARTRIDGE_SELECT_MASK) == CARTRIDGE_CHIP_SELECT)
+        {
+            cartridge.Write(addr, value);
+        }
+        else if ((addr & PIA_SELECT_MASK) == PIA_CHIP_SELECT)
+        {
+            pia.Write(addr, value); 
+        }
+        else if ((addr & RAM_SELECT_MASK) == RAM_CHIP_SELECT)
+        {
+            ram.Write(addr, value); 
+        }
+        else if ((addr & TIA_SELECT_MASK) == TIA_CHIP_SELECT)
+        {
+            tia.Write(addr, value); 
+        }
+        else
+        {
+            throw new InvalidOperationException("No device mask matched for write to address " + addr.ToString("X4"));
+        }
     }
 
     public void Tick()
