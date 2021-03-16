@@ -61,12 +61,12 @@ public class PIA : IBusDevice
     private int intervalCounter;
     private int currentInterval;
 
-    private byte TIMINT;
-    private byte INTIM; // timer value at 0x0284
-    private byte TIM1T;
-    private byte TIM8T;
-    private byte TIM64T;
-    private byte T1024T;
+    public byte TIMINT { get; private set; }
+    public byte INTIM { get; private set; } // timer value at 0x0284
+    public byte TIM1T { get; private set; }
+    public byte TIM8T { get; private set; }
+    public byte TIM64T { get; private set; }
+    public byte T1024T { get; private set; }
 
     private const ushort ADDRESS_MASK = 0x0007;
     private const byte TIMER_INTERRUPT_FLAG = 0x80;
@@ -76,13 +76,13 @@ public class PIA : IBusDevice
     // "0" is input and "1" is output.
     //
     // The port itself is read and written at 0x0280 (SWCHA)
-    private byte SWCHA;
-    private byte SWACNT;    // 0x0281 (data direction register)
+    public byte SWCHA { get; private set; }
+    public byte SWACNT { get; private set; }    // 0x0281 (data direction register)
 
     // port B is used for the console switches and is read only
     // port is read via 0x0282 (SWCHB)
-    private byte SWCHB;
-    private byte SWBCNT;    // 0x0283 (data direction register - hard wired as input)
+    public byte SWCHB { get; private set; }
+    public byte SWBCNT { get; private set; }    // 0x0283 (data direction register - hard wired as input)
 
     public void Boot()
     {
@@ -171,11 +171,7 @@ public class PIA : IBusDevice
 
     public void Tick()
     {
-        intervalCounter--;
-        if( intervalCounter <= 0 )
-        {
-            DecrementTimer();
-        }
+        DecrementTimer();
     }
 
 

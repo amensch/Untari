@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using KDS.e6502CPU;
 
 public class TIA : IBusDevice
@@ -9,12 +10,12 @@ public class TIA : IBusDevice
     // 68 HBLANK, then 160 active = 228 total
     private int horizontal_position;
     private const int END_OF_HBLANK = 68;
-    private const int MAX_HORIZONTAL = 228;
+    public const int MAX_HORIZONTAL = 228;
 
     // 3 VSYNC, 37 VBLANK, 192 active, 30 OVERSCAN = 262 total
     private int vertical_position;
     private const int END_OF_VBLANK = 40;
-    private const int MAX_VERTICAL = 262;
+    public const int MAX_VERTICAL = 262;
 
     // Pixel action delegates for each x,y position
     private delegate void PixelAction();
@@ -74,8 +75,8 @@ public class TIA : IBusDevice
 
     public void Boot()
     {
-        horizontal_position = 1;
-        vertical_position = 1;
+        horizontal_position = 0;
+        vertical_position = 0;
         memory = new byte[ 0x3f ];
     }
 
@@ -108,7 +109,7 @@ public class TIA : IBusDevice
         }
     }
 
-    private void TIATick()
+    public void TIATick()
     {
         UpdateScanPosition();
         CallPixelAction();
@@ -121,11 +122,11 @@ public class TIA : IBusDevice
         if( horizontal_position > MAX_HORIZONTAL )
         {
             CPU.SetReadyLatch();
-            horizontal_position = 1;
+            horizontal_position = 0;
             vertical_position++;
 
             if( vertical_position > MAX_VERTICAL )
-                vertical_position = 1;
+                vertical_position = 0;
         }
     }
 
@@ -134,19 +135,12 @@ public class TIA : IBusDevice
         pixelActions[ horizontal_position - 1, vertical_position - 1 ]();
     }
 
-    private void UpdatePixel()
-    {
-
-    }
-
     private void VerticalSync()
     {
-
     }
 
     private void VerticalBlank()
     {
-
     }
 
     private void HorizontalBlank()
@@ -155,13 +149,9 @@ public class TIA : IBusDevice
 
     private void Overscan()
     {
-
     }
 
     private void ViewableArea()
     {
-        //Picture.UpdatePixel( horizontal_position - END_OF_HBLANK, 
-        //                        vertical_position - END_OF_VBLANK, 
-        //                        Palette.GetColor( memory[ TIAConstants.COLUBK ] ) );
     }
 }

@@ -6,6 +6,5 @@ using System.Threading.Tasks;
 
 public interface IReadyDevice
 {
-    void SetReadyLatch();
-    void ClearReadyLatch();
+    bool RDY { get; set; }
 }

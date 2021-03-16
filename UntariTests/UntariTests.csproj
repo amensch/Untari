@@ -55,6 +55,7 @@
     <Compile Include="PIATests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestROM.cs" />
+    <Compile Include="TIATests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\e6502\e6502CPU\e6502CPU.csproj">

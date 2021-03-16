@@ -12,18 +12,6 @@ namespace UntariTests
         private const ushort INTIM = 0x0284;
 
         [TestMethod]
-        public void PIAWriteInterval_1()
-        {
-            PIA pia = new PIA();
-            pia.Boot();
-
-            pia.Write( TIM1T, 100 );
-            byte result = pia.Read( INTIM );
-
-            Assert.AreEqual( 99, result );
-        }
-
-        [TestMethod]
         public void PIATestInterval_1()
         {
             byte result;
@@ -32,7 +20,6 @@ namespace UntariTests
             pia.Write( TIM1T, 100 );
             result = pia.Read( INTIM );
             Assert.AreEqual( 99, result );
-
 
             for( int ii = 99; ii >= 1; ii-- )
             {
@@ -48,18 +35,6 @@ namespace UntariTests
             pia.Tick();
             result = pia.Read( INTIM );
             Assert.AreEqual( 254, result );
-        }
-
-        [TestMethod]
-        public void PIAWriteInterval_8()
-        {
-            PIA pia = new PIA();
-            pia.Boot();
-
-            pia.Write( TIM8T, 100 );
-            byte result = pia.Read( INTIM );
-
-            Assert.AreEqual( 99, result );
         }
 
         [TestMethod]
@@ -97,18 +72,6 @@ namespace UntariTests
         }
 
         [TestMethod]
-        public void PIAWriteInterval_64()
-        {
-            PIA pia = new PIA();
-            pia.Boot();
-
-            pia.Write( TIM64T, 100 );
-            byte result = pia.Read( INTIM );
-
-            Assert.AreEqual( 99, result );
-        }
-
-        [TestMethod]
         public void PIATestInterval_64()
         {
             byte result;
@@ -140,18 +103,6 @@ namespace UntariTests
             pia.Tick();
             result = pia.Read( INTIM );
             Assert.AreEqual( 254, result );
-        }
-
-        [TestMethod]
-        public void PIAWriteInterval_1024()
-        {
-            PIA pia = new PIA();
-            pia.Boot();
-
-            pia.Write( T1024T, 100 );
-            byte result = pia.Read( INTIM );
-
-            Assert.AreEqual( 99, result );
         }
 
         [TestMethod]
