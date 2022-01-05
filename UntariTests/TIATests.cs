@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace UntariTests
 {
@@ -7,7 +8,7 @@ namespace UntariTests
     {
         private class MockCPU : IReadyDevice
         {
-            public bool RDY { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+            public bool RDY { get; set; }
         }
 
         private TIA CreateTIA()
@@ -18,10 +19,14 @@ namespace UntariTests
         }
 
         [TestMethod]
-        public void Test1()
+        public void OutputAction()
         {
             var tia = CreateTIA();
-
+            for(int ii = 1; ii < 20000; ii++)
+            {
+                tia.Tick();
+            }
+            tia.WritePixelActions();
         }
     }
 }

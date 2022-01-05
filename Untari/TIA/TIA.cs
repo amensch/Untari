@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using KDS.e6502CPU;
 
 public class TIA : IBusDevice
@@ -101,38 +103,42 @@ public class TIA : IBusDevice
         switch( tia_addr )
         {
             case TIAConstants.WSYNC:
-                if(data == 0x00)
-                {
-                    CPU.ClearReadyLatch();
-                }
+                CPU.RDY = false;
                 break;
         }
     }
 
     public void TIATick()
     {
-        UpdateScanPosition();
+        if (horizontal_position == 0)
+        {
+            CPU.RDY = true;
+            if(vertical_position == 0)
+            {
+                // VSYNC
+            }
+        }
         CallPixelAction();
+        UpdateScanPosition();
     }
 
     private void UpdateScanPosition()
     {
         horizontal_position++;
 
-        if( horizontal_position > MAX_HORIZONTAL )
+        if( horizontal_position >= MAX_HORIZONTAL )
         {
-            CPU.SetReadyLatch();
             horizontal_position = 0;
             vertical_position++;
 
-            if( vertical_position > MAX_VERTICAL )
+            if( vertical_position >= MAX_VERTICAL )
                 vertical_position = 0;
         }
     }
 
     private void CallPixelAction()
     {
-        pixelActions[ horizontal_position - 1, vertical_position - 1 ]();
+        pixelActions[horizontal_position, vertical_position]();
     }
 
     private void VerticalSync()
