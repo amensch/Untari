@@ -1,4 +1,4 @@
-﻿using KDS.e6502CPU;
+﻿using KDS.e6502;
 
 public class PIA : IBusDevice
 {

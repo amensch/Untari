@@ -1,4 +1,4 @@
-﻿using KDS.e6502CPU;
+﻿using KDS.e6502;
 using KDS.Untari;
 using System;
 

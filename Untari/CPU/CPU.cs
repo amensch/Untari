@@ -1,8 +1,8 @@
-﻿using KDS.e6502CPU;
+﻿using KDS.e6502;
 
 namespace KDS.Untari
 {
-    public class CPU : e6502, IReadyDevice
+    public class CPU : e6502CPU, IReadyDevice
     {
         private int Clocks = 0;
 
