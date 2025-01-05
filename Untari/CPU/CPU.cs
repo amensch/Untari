@@ -2,7 +2,7 @@
 
 namespace KDS.Untari
 {
-    public class CPU : e6502CPU, IReadyDevice
+    public class CPU : CPU6502, IReadyDevice
     {
         private int Clocks = 0;
 
